@@ -1,6 +1,7 @@
 import os
 import tempfile
 import time
+import sys
 
 from pathlib import Path
 
@@ -80,7 +81,7 @@ def main(directory: str, recipe_nickname: str, host: str, gcp_credentials_json: 
             click.echo(a.log_path.read_text(), err=True)
             click.echo("\n\n\n  📄 end of Log output")
 
-        os.exit(1)
+        sys.exit(1)
 
     sha = os.environ.get("GITHUB_SHA", "unknown")
     ts = int(time.time())
