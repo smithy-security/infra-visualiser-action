@@ -1,0 +1,27 @@
+name: 'Infra Visualiser Action'
+description: 'Analyze Terraform/OpenTofu recipes, generate graphs, and upload to platform'
+author: 'Smithy'
+
+inputs:
+  directory:
+    description: 'Path (relative to repo root) to the Terraform/OpenTofu recipe'
+    required: true
+  recipe-nickname:
+    description: 'Human-friendly nickname for this recipe'
+    required: true
+  host:
+    description: 'Base URL of the platform host (used as OIDC audience and upload target)'
+    required: false
+    default: 'https://infra-app-916613094271.europe-west1.run.app'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+
+permissions:
+  id-token: write
+  contents: read
+
+branding:
+  icon: 'box'
+  color: 'blue'
