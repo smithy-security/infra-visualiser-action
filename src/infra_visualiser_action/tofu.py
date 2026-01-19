@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -123,6 +124,12 @@ def run_tofu_plans(
     try:
         click.echo(f"  📁 Changing working directory to {recipe_dir}...")
         os.chdir(recipe_dir)
+
+        click.echo(f"  ⚙️ Running tofu init...")
+        init_proc = subprocess.run(["tofu", "init"], check=False, stdout=sys.stdout, stderr=sys.stderr)
+        if init_proc.returncode != 0:
+            click.echo(f"  ❌ Failed to run tofu init: {init_proc.returncode}", err=True)
+            sys.exit(1)
 
         for env_label, extra_args in planned_attempts:
             click.echo(f"  ⚙️ Running tofu plan for {env_label}...")
