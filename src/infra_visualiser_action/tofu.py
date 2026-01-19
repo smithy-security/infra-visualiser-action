@@ -186,7 +186,7 @@ def find_local_modules_from_modules_json(
         candidate = None
 
         # Prefer explicit directory if present
-        if module_dir:
+        if module_dir and module_dir.name != ".":
             candidate = repo_root / module_dir
             click.echo(f"  ✅ found terraform module: {module_dir}")
         elif source:
@@ -210,7 +210,7 @@ def find_local_modules_from_modules_json(
                 candidate = repo_root / source
 
         if candidate and candidate.exists():
-            local_paths.append(candidate)
+            local_paths.append(candidate.resolve())
 
     # Deduplicate
     unique_paths = []

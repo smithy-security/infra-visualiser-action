@@ -25,12 +25,7 @@ def create_archive(
     for pattern in ("*.tf", "*.json", "*.dot"):
         for p in recipe_dir.glob(pattern):
             if p.is_file():
-                files_to_add.append(p)
-
-    # modules.json (if exists)
-    modules_json = recipe_dir / ".terraform" / "modules" / "modules.json"
-    if modules_json.is_file():
-        files_to_add.append(modules_json)
+                files_to_add.append(p.resolve())
 
     # Extra paths (e.g. local modules)
     if extra_paths:
