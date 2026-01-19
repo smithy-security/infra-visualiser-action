@@ -121,14 +121,17 @@ def run_tofu_plans(
 
 
     try:
+        click.echo(f"  📁 Changing working directory to {recipe_dir}...")
         os.chdir(recipe_dir)
 
         for env_label, extra_args in planned_attempts:
+            click.echo(f"  🔎 Running tofu plan for {env_label}...")
             attempt = _run_plan(env_label, extra_args)
             attempts.append(attempt)
             if attempt.success:
+                click.echo(f"  ✅ Successfully ran tofu plan for {env_label}")
                 _generate_plan_and_graph(recipe_dir=recipe_dir)
-
+                click.echo(f"  📊 Generated plan and graph for {env_label}")
                 return attempts, True
 
     finally:
