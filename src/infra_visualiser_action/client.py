@@ -47,7 +47,17 @@ def get_commit_timestamp() -> str:
     Gets the commit timestamp from Git metadata if available.
     """
     sha = os.environ.get("GITHUB_SHA", "unknown")
+    workspace = os.environ.get("GITHUB_WORKSPACE", ".")
+    
     try:
+        # Mark the workspace directory as safe to avoid "dubious ownership" error
+        # This is needed in GitHub Actions where the repo is owned by a different user
+        subprocess.run(
+            ["git", "config", "--global", "--add", "safe.directory", workspace],
+            check=False,
+            capture_output=True,
+        )
+        
         commit_ts = subprocess.check_output(
             ["git", "show", "--no-patch", "--format=%ct", sha],
             text=True,
