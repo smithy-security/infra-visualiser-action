@@ -51,7 +51,7 @@ def _run_plan(env_label: str, extra_args: list[str]) -> PlanAttempt:
     log_path = Path(tempfile.gettempdir()) / f"tofu_plan_{safe_label}_{ts}.log"
 
     cmd = ["tofu", "plan", "-out=tfplan", "-input=false"] + extra_args
-    click.echo("")
+    click.echo(f"  🔍 Running command: {' '.join(cmd)}")
     with log_path.open("w", encoding="utf-8") as log_file:
         log_file.write(f"$ {' '.join(cmd)}\n\n")
         proc = subprocess.run(
@@ -125,7 +125,7 @@ def run_tofu_plans(
         os.chdir(recipe_dir)
 
         for env_label, extra_args in planned_attempts:
-            click.echo(f"  🔎 Running tofu plan for {env_label}...")
+            click.echo(f"  ⚙️ Running tofu plan for {env_label}...")
             attempt = _run_plan(env_label, extra_args)
             attempts.append(attempt)
             if attempt.success:
@@ -135,6 +135,7 @@ def run_tofu_plans(
                 return attempts, True
 
     finally:
+        click.echo(f"  📁 Changing working directory to original directory {original_cwd}...")
         os.chdir(original_cwd)
 
     return attempts, False

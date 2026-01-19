@@ -76,6 +76,9 @@ def main(directory: str, recipe_nickname: str, host: str, gcp_credentials_json: 
                 f" - {a.env_label}: success={a.success}, log={a.log_path}",
                 err=True,
             )
+            click.echo("  📄 Log output:\n\n\n")
+            click.echo(a.log_path.read_text(), err=True)
+            click.echo("\n\n\n  📄 end of Log output")
 
         os.exit(1)
 
