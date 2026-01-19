@@ -2,6 +2,7 @@ import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+from subprocess import CompletedProcess
 from unittest import mock
 
 import pytest
@@ -61,6 +62,8 @@ def test_run_tofu_plans_stops_on_first_success_and_restores_cwd(tmp_path: Path):
 
     original_cwd = Path.cwd()
 
+    override_file = recipe_dir / "backend_override.tf"
+
     run_plan_results = [
         _attempt("defaults", False),
         _attempt("a.tfvars", True),
@@ -68,6 +71,10 @@ def test_run_tofu_plans_stops_on_first_success_and_restores_cwd(tmp_path: Path):
     ]
 
     with (
+        mock.patch(
+            "infra_visualiser_action.tofu._run_init",
+            side_effect=[override_file],
+        ) as mock_tofu_init,
         mock.patch(
             "infra_visualiser_action.tofu._run_plan",
             side_effect=run_plan_results,
@@ -79,6 +86,9 @@ def test_run_tofu_plans_stops_on_first_success_and_restores_cwd(tmp_path: Path):
         attempts, any_success = tofu.run_tofu_plans(
             recipe_dir=recipe_dir, tfvars_files=tfvars_files
         )
+
+    assert mock_tofu_init.call_count == 1
+    assert not override_file.exists()
 
     # First success should short-circuit
     assert any_success is True
@@ -105,6 +115,8 @@ def test_run_tofu_plans_all_fail_returns_all_attempts_and_restores_cwd(tmp_path:
 
     original_cwd = Path.cwd()
 
+    override_file = recipe_dir / "backend_override.tf"
+
     run_plan_results = [
         _attempt("defaults", False),
         _attempt("a.tfvars", False),
@@ -112,6 +124,10 @@ def test_run_tofu_plans_all_fail_returns_all_attempts_and_restores_cwd(tmp_path:
     ]
 
     with (
+        mock.patch(
+            "infra_visualiser_action.tofu._run_init",
+            side_effect=[override_file],
+        ) as mock_tofu_init,
         mock.patch(
             "infra_visualiser_action.tofu._run_plan",
             side_effect=run_plan_results,
@@ -123,6 +139,9 @@ def test_run_tofu_plans_all_fail_returns_all_attempts_and_restores_cwd(tmp_path:
         attempts, any_success = tofu.run_tofu_plans(
             recipe_dir=recipe_dir, tfvars_files=tfvars_files
         )
+
+    assert mock_tofu_init.call_count == 1
+    assert not override_file.exists()
 
     assert any_success is False
     assert [a.env_label for a in attempts] == ["defaults", "a.tfvars", "b.tfvars"]

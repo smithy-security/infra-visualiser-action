@@ -45,6 +45,18 @@ def find_tfvars_files(repo_root: Path) -> list[Path]:
 
     return sorted(tfvars_files)
 
+def _run_init() -> Path:
+    backend_file = Path("backend_override.tf")
+    backend_file.write_text("""terraform {
+    backend "local" { path = "terraform.tfstate" }
+}""", encoding="utf-8")
+    init_proc = subprocess.run(["tofu", "init",  "-input=false"], check=False, stdout=sys.stdout, stderr=sys.stderr)
+    if init_proc.returncode != 0:
+        click.echo(f"  ❌ Failed to run tofu init: {init_proc.returncode}", err=True)
+        sys.exit(1)
+
+    return backend_file
+
 
 def _run_plan(env_label: str, extra_args: list[str]) -> PlanAttempt:
     ts = int(time.time())
@@ -120,16 +132,14 @@ def run_tofu_plans(
         (var_file.name, ["-var-file", str(var_file)]) for var_file in tfvars_files
     )
 
+    backend_file = None
 
     try:
         click.echo(f"  📁 Changing working directory to {recipe_dir}...")
         os.chdir(recipe_dir)
 
         click.echo(f"  ⚙️ Running tofu init...")
-        init_proc = subprocess.run(["tofu", "init"], check=False, stdout=sys.stdout, stderr=sys.stderr)
-        if init_proc.returncode != 0:
-            click.echo(f"  ❌ Failed to run tofu init: {init_proc.returncode}", err=True)
-            sys.exit(1)
+        backend_file = _run_init()
 
         for env_label, extra_args in planned_attempts:
             click.echo(f"  ⚙️ Running tofu plan for {env_label}...")
@@ -142,6 +152,9 @@ def run_tofu_plans(
                 return attempts, True
 
     finally:
+        if backend_file and backend_file.exists():
+            backend_file.unlink()
+
         click.echo(f"  📁 Changing working directory to original directory {original_cwd}...")
         os.chdir(original_cwd)
 
