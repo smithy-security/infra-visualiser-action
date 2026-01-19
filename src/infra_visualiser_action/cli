@@ -31,7 +31,14 @@ from infra_visualiser_action.client import create_archive, upload_archive_to_hos
     envvar="INPUT_HOST",
     help="Base URL of the platform host (used as OIDC audience and upload target).",
 )
-def main(directory: str, recipe_nickname: str, host: str) -> None:
+@click.option(
+    "--gcp-credentials-json",
+    "gcp_credentials_json",
+    required=False,
+    envvar="INPUT_GCP_CREDENTIALS_JSON",
+    help="GCP service account JSON credentials for authenticating with Google Cloud Provider.",
+)
+def main(directory: str, recipe_nickname: str, host: str, gcp_credentials_json: str | None) -> None:
     """
     Run OpenTofu discovery against a Terraform recipe, create an archive, and upload it.
     Intended to be called from a GitHub Action step.
@@ -41,6 +48,16 @@ def main(directory: str, recipe_nickname: str, host: str) -> None:
 
     click.echo(f"Repository root: {repo_root}")
     click.echo(f"Recipe directory: {recipe_dir}")
+
+    # 0. Set up GCP credentials if provided
+    if gcp_credentials_json:
+        click.echo("🔑 Setting up GCP credentials...")
+        gcp_creds_file = Path(tempfile.gettempdir()) / "gcp-credentials.json"
+        gcp_creds_file.write_text(gcp_credentials_json, encoding="utf-8")
+        # Set restrictive permissions (read-only for owner)
+        gcp_creds_file.chmod(0o600)
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(gcp_creds_file)
+        click.echo(f"  ✅ GCP credentials written to {gcp_creds_file}")
 
     # 1. Discover .tfvars files in the repo
     click.echo(" 🔎 Discovering .tfvars files...")

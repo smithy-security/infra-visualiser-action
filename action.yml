@@ -7,12 +7,15 @@ inputs:
     description: 'Path (relative to repo root) to the Terraform/OpenTofu recipe'
     required: true
   recipe-nickname:
-    description: 'Human-friendly nickname for this recipe'
+    description: 'Nickname for this recipe that you set on the platform'
     required: true
   host:
     description: 'Base URL of the platform host (used as OIDC audience and upload target)'
     required: false
     default: 'https://infra-app-916613094271.europe-west1.run.app'
+  gcp-credentials-json:
+    description: 'GCP service account JSON credentials for authenticating with Google Cloud Provider'
+    required: false
 
 runs:
   using: 'docker'
