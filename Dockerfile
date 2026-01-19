@@ -22,14 +22,12 @@ WORKDIR /action
 
 # Copy source code
 COPY src/ /action/src/
-COPY pyproject.toml uv.lock* /action/
+COPY pyproject.toml uv.lock* README.md /action/
 
 # Install Python dependencies using uv
 RUN pip install --upgrade pip && \
     pip install uv && \
-    uv venv --clear .venv && \
-    uv sync && \
+    uv pip install --system . && \
     pip uninstall -y uv
 
-# Set entrypoint to run the CLI script
-ENTRYPOINT [ "/action/.venv/bin/python", "/action/src/infra_visualiser_action/cli" ]
+CMD [ "python3", "/action/src/infra_visualiser_action/cli" ]
