@@ -186,7 +186,7 @@ def find_local_modules_from_modules_json(
         candidate = None
 
         # Prefer explicit directory if present
-        if module_dir and module_dir.name != ".":
+        if module_dir and module_dir != ".":
             candidate = repo_root / module_dir
             click.echo(f"  ✅ found terraform module: {module_dir}")
         elif source:
