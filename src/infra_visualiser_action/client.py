@@ -37,8 +37,10 @@ def create_archive(
     archive_path.parent.mkdir(parents=True, exist_ok=True)
     with tarfile.open(archive_path, "w:gz") as tar:
         for p in files_to_add:
+            archive_name = str(p.relative_to(repo_root))
+            click.echo(f"Adding file to archive: {p} as path {archive_name}")
             # Store paths relative to repo root for stability
-            tar.add(p, arcname=str(p.relative_to(repo_root)))
+            tar.add(p, arcname=archive_name)
 
     return archive_path
 
