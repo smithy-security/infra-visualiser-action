@@ -176,7 +176,7 @@ def test_find_local_modules_from_modules_json_returns_empty_if_no_modules(tmp_pa
     repo_root = tmp_path
 
     result = tofu.find_local_modules_from_modules_json(modules_json, repo_root)
-    assert result == [modules_json]
+    assert result == set([modules_json])
 
 
 def test_find_local_modules_from_modules_json_prefers_dir_over_source(tmp_path: Path):
@@ -206,8 +206,7 @@ def test_find_local_modules_from_modules_json_prefers_dir_over_source(tmp_path: 
 
     result = tofu.find_local_modules_from_modules_json(modules_json, repo_root)
     assert len(result) == 2
-    assert result[0] == modules_json.resolve()
-    assert result[1] == local_module_dir.resolve()
+    assert result == set([modules_json.resolve(), local_module_dir.resolve()])
 
 
 def test_find_local_modules_from_modules_json_uses_source_with_relative_paths(tmp_path: Path):
@@ -229,8 +228,7 @@ def test_find_local_modules_from_modules_json_uses_source_with_relative_paths(tm
 
     result = tofu.find_local_modules_from_modules_json(modules_json, repo_root)
     assert len(result) == 2
-    assert result[0] == modules_json.resolve()
-    assert result[1] == local_module.resolve()
+    assert result == set([modules_json.resolve(), local_module.resolve()])
 
 
 def test_find_local_modules_from_modules_json_ignores_remote_sources(tmp_path: Path):
@@ -251,7 +249,7 @@ def test_find_local_modules_from_modules_json_ignores_remote_sources(tmp_path: P
     repo_root = tmp_path
 
     result = tofu.find_local_modules_from_modules_json(modules_json, repo_root)
-    assert result == [modules_json.resolve()]
+    assert result == set([modules_json.resolve()])
 
 
 def test_find_local_modules_from_modules_json_treats_non_remote_as_local(tmp_path: Path):
@@ -273,8 +271,7 @@ def test_find_local_modules_from_modules_json_treats_non_remote_as_local(tmp_pat
 
     result = tofu.find_local_modules_from_modules_json(modules_json, repo_root)
     assert len(result) == 2
-    assert result[0] == modules_json.resolve()
-    assert result[1] == local_module.resolve()
+    assert result == set([modules_json.resolve(), local_module.resolve()])
 
 
 def test_find_local_modules_from_modules_json_filters_nonexistent_paths(tmp_path: Path):
@@ -297,8 +294,7 @@ def test_find_local_modules_from_modules_json_filters_nonexistent_paths(tmp_path
 
     result = tofu.find_local_modules_from_modules_json(modules_json, repo_root)
     assert len(result) == 2
-    assert result[0] == modules_json.resolve()
-    assert result[1] == existing_module.resolve()
+    assert result == set([modules_json.resolve(), existing_module.resolve()])
 
 
 def test_find_local_modules_from_modules_json_deduplicates_paths(tmp_path: Path):
@@ -321,8 +317,7 @@ def test_find_local_modules_from_modules_json_deduplicates_paths(tmp_path: Path)
 
     result = tofu.find_local_modules_from_modules_json(modules_json, repo_root)
     assert len(result) == 2
-    assert result[0] == modules_json.resolve()
-    assert result[1] == local_module.resolve()
+    assert result == set([modules_json.resolve(), local_module.resolve()])
 
 
 def test_find_local_modules_from_modules_json_supports_lowercase_keys(tmp_path: Path):
@@ -347,9 +342,7 @@ def test_find_local_modules_from_modules_json_supports_lowercase_keys(tmp_path: 
 
     result = tofu.find_local_modules_from_modules_json(modules_json, repo_root)
     assert len(result) == 2
-    assert result[0] == modules_json.resolve()
-    assert result[1] == local_module.resolve()
-
+    assert result == set([modules_json.resolve(), local_module.resolve()])
 
 def test_find_local_modules_from_modules_json_handles_multiple_local_modules(tmp_path: Path):
     """Test finding multiple local modules"""
