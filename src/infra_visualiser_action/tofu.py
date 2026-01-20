@@ -163,10 +163,10 @@ def run_tofu_plans(
 
 def find_local_modules_from_modules_json(
     modules_json_path: Path,
-    repo_root: Path,
+    recipe_dir: Path,
 ) -> set[Path]:
     """
-    Reads modules.json and returns paths to local modules that exist in repo_root.
+    Reads modules.json and returns paths to local modules that exist in the repo.
     The Terraform/OpenTofu modules.json format has a "Modules" list; we treat
     any entry whose "Source" or "Dir" refers to a local path as a local module.
     """
@@ -186,7 +186,7 @@ def find_local_modules_from_modules_json(
 
         # Prefer explicit directory if present
         if module_dir and module_dir != ".":
-            candidate = (repo_root / module_dir).resolve()
+            candidate = (recipe_dir / module_dir).resolve()
             click.echo(f"  ✅ found terraform module: {candidate}")
         elif source:
             click.echo(f"  🔎 checking if {module_dir} is a local directory")
@@ -205,7 +205,7 @@ def find_local_modules_from_modules_json(
                     )
                 )
             ):
-                candidate = (repo_root / source).resolve()
+                candidate = (recipe_dir / source).resolve()
                 click.echo(f"  ✅ adding {candidate} to list of local modules")
 
         if candidate and candidate.exists():

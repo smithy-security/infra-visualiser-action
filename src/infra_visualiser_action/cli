@@ -91,7 +91,7 @@ def main(directory: str, recipe_nickname: str, host: str, gcp_credentials_json: 
 
     # Local modules from modules.json
     modules_json = recipe_dir / ".terraform" / "modules" / "modules.json"
-    local_modules = find_local_modules_from_modules_json(modules_json, repo_root)
+    local_modules = find_local_modules_from_modules_json(modules_json, recipe_dir)
 
     click.echo(f"📦 Creating archive at {archive_path}...")
     create_archive(repo_root, recipe_dir, archive_path, extra_paths=local_modules)
