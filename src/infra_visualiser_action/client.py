@@ -92,13 +92,28 @@ def has_terraform_changes_in_paths(
         cwd=repo_root,
     )
 
+    # we also want to check if the workflow itself changed
+    github_workflow_ref = os.environ.get("GITHUB_WORKFLOW_REF")
+    github_workflow_path: str | None = None
+    if github_workflow_ref:
+        github_workflow_ref = github_workflow_ref.split("@")[0]
+        if ".github" in github_workflow_ref:
+            github_workflow_ref = github_workflow_ref[github_workflow_ref.index(".github"):]
+
+        if Path(github_workflow_ref).exists():
+            github_workflow_path = github_workflow_ref
+
     terraform_dirs: set[Path] = set()
     for line in changed_files_output.splitlines():
         rel = line.strip()
         if not rel:
             continue
 
-        file_path = (repo_root / rel).resolve()
+        file_path = (repo_root / rel).resolve().relative_to(repo_root)
+        if str(file_path) == github_workflow_path:
+            click.echo(f"GitHub workflow file changed: {file_path}")
+            return True
+
         if file_path.suffix in {".tf", ".tfvars"}:
             terraform_dirs.add(file_path.parent)
 
