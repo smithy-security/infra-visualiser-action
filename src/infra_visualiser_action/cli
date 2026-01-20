@@ -9,7 +9,7 @@ import click
 
 from infra_visualiser_action.tofu import find_local_modules_from_modules_json, find_tfvars_files, run_tofu_plans
 from infra_visualiser_action.oidc import get_oidc_token_for_host
-from infra_visualiser_action.client import create_archive, upload_archive_to_host
+from infra_visualiser_action.client import create_archive, has_terraform_changes_in_paths, mark_dir_safe, upload_archive_to_host
 
 # Top-level CLI with click
 @click.command()
@@ -50,7 +50,6 @@ def main(directory: str, recipe_nickname: str, host: str, gcp_credentials_json: 
     click.echo(f"Repository root: {repo_root}")
     click.echo(f"Recipe directory: {recipe_dir}")
 
-    # 0. Set up GCP credentials if provided
     if gcp_credentials_json:
         click.echo("🔑 Setting up GCP credentials...")
         gcp_creds_file = Path(tempfile.gettempdir()) / "gcp-credentials.json"
@@ -60,13 +59,11 @@ def main(directory: str, recipe_nickname: str, host: str, gcp_credentials_json: 
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(gcp_creds_file)
         click.echo(f"  ✅ GCP credentials written to {gcp_creds_file}")
 
-    # 1. Discover .tfvars files in the repo
     click.echo(" 🔎 Discovering .tfvars files...")
     tfvars_files = find_tfvars_files(repo_root)
     for f in tfvars_files:
         click.echo(f"  found: {f}")
 
-    # 2. Run tofu plans
     click.echo("🚀 Running tofu plans...")
     attempts, any_success = run_tofu_plans(recipe_dir, tfvars_files)
 
@@ -89,18 +86,23 @@ def main(directory: str, recipe_nickname: str, host: str, gcp_credentials_json: 
     archive_name = f"terraform_{safe_recipe}_{sha}_{ts}.tar.gz"
     archive_path = Path(tempfile.gettempdir()) / archive_name
 
-    # Local modules from modules.json
     modules_json = recipe_dir / ".terraform" / "modules" / "modules.json"
     local_modules = find_local_modules_from_modules_json(modules_json, recipe_dir)
+
+    mark_dir_safe(repo_root)
+    if not has_terraform_changes_in_paths(
+        [l.relative_to(repo_root) for l in local_modules]+[recipe_dir],
+        repo_root
+    ):
+        click.echo("No relevant Terraform files changes found. Skipping archive creation.")
+        sys.exit(0)
 
     click.echo(f"📦 Creating archive at {archive_path}...")
     create_archive(repo_root, recipe_dir, archive_path, extra_paths=local_modules)
 
-    # 5. Get OIDC token
     click.echo("🔑 Requesting OIDC token from GitHub...")
     oidc_token = get_oidc_token_for_host(host)
 
-    # 6. Upload archive
     click.echo(f"🏗️ Uploading archive to {host}...")
     upload_archive_to_host(
         host=host,

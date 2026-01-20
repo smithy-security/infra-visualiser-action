@@ -374,3 +374,91 @@ def test_find_local_modules_from_modules_json_handles_multiple_local_modules(tmp
         module1.resolve(),
         module2.resolve()
     }
+
+
+def test_has_terraform_changes_in_paths_returns_false_when_no_terraform_files_changed(tmp_path: Path):
+    """Test that function returns False when diff contains no Terraform files"""
+    repo_root = tmp_path.resolve()
+    candidate_dirs = [tmp_path / "terraform" / "app", tmp_path / "terraform" / "network"]
+    
+    # Mock git diff output with non-terraform files
+    git_diff_output = "src/main.py\nREADME.md\nconfig.yaml\n"
+    
+    with (
+        mock.patch.dict(
+            os.environ,
+            {"GITHUB_SHA": "abc123"},
+            clear=False
+        ),
+        mock.patch(
+            "infra_visualiser_action.client.subprocess.check_output",
+            return_value=git_diff_output,
+        ) as mock_check_output,
+    ):
+        result = client.has_terraform_changes_in_paths(candidate_dirs, repo_root)
+    
+    assert not result
+    # Verify git diff was called with correct arguments
+    mock_check_output.assert_called_once()
+    call_args = mock_check_output.call_args[0][0]  # First positional arg is the command list
+    assert call_args[0] == "git"
+    assert "diff" in call_args
+    assert "--name-only" in call_args
+
+
+def test_has_terraform_changes_in_paths_returns_false_when_terraform_changes_not_in_candidate_dirs(tmp_path: Path):
+    """Test that function returns False when Terraform files changed but not in candidate directories"""
+    repo_root = tmp_path.resolve()
+    
+    # Create candidate directories (but no changes will be in these)
+    candidate_dirs = [tmp_path / "terraform" / "app", tmp_path / "terraform" / "network"]
+    
+    # Mock git diff output with Terraform files in different directories
+    git_diff_output = "other-terraform/module1/main.tf\nother-terraform/module2/variables.tfvars\n"
+    
+    with (
+        mock.patch.dict(
+            os.environ,
+            {"GITHUB_SHA": "abc123"},
+            clear=False
+        ),
+        mock.patch(
+            "infra_visualiser_action.client.subprocess.check_output",
+            return_value=git_diff_output,
+        ) as mock_check_output,
+    ):
+        result = client.has_terraform_changes_in_paths(candidate_dirs, repo_root)
+    
+    assert not result
+    mock_check_output.assert_called_once()
+
+
+def test_has_terraform_changes_in_relevant_paths_returns_true(tmp_path: Path):
+    """Test that function returns True when Terraform files changed in candidate directories"""
+    repo_root = tmp_path.resolve()
+    
+    # Create candidate directories (but no changes will be in these)
+    candidate_dirs = [
+        tmp_path / "terraform" / "app",
+        tmp_path / "terraform" / "module1",
+        tmp_path / "terraform" / "network"
+    ]
+    
+    # Mock git diff output with Terraform files in different directories
+    git_diff_output = "terraform/module1/main.tf\nother-terraform/module2/variables.tfvars\n"
+    
+    with (
+        mock.patch.dict(
+            os.environ,
+            {"GITHUB_SHA": "abc123"},
+            clear=False
+        ),
+        mock.patch(
+            "infra_visualiser_action.client.subprocess.check_output",
+            return_value=git_diff_output,
+        ) as mock_check_output,
+    ):
+        result = client.has_terraform_changes_in_paths(candidate_dirs, repo_root)
+    
+    assert result
+    mock_check_output.assert_called_once()

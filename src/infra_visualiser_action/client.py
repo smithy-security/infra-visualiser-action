@@ -47,22 +47,75 @@ def create_archive(
     return archive_path
 
 
+def mark_dir_safe(dir: Path) -> None:
+    """
+    Mark the given directory as safe to avoid "dubious ownership" errors
+    """
+    try:
+        subprocess.run(
+            ["git", "config", "--global", "--add", "safe.directory", str(dir)],
+            check=False,
+            capture_output=True,
+        )
+    except Exception as e:
+        raise click.ClickException(
+            f"Could not mark repository as safe: {e}"
+        )
+
+def has_terraform_changes_in_paths(
+    candidate_dirs: Iterable[Path],
+    repo_root: Path,
+) -> bool:
+    """
+    Check the git diff for the current commit/PR and determine whether any
+    Terraform-related files (*.tf, *.tfvars) have changed in one of the
+    given directories.
+
+    Returns True if at least one of the candidate directories contains a
+    changed Terraform-related file, otherwise False.
+    """
+
+    sha = os.environ.get("GITHUB_SHA")
+    base_sha = os.environ.get("GITHUB_BASE_SHA")
+
+    # Prefer PR base/head SHAs when available, otherwise fall back to last commit
+    if base_sha and sha:
+        diff_range = f"{base_sha}...{sha}"
+    elif sha:
+        diff_range = f"{sha}~1...{sha}"
+    else:
+        diff_range = "HEAD~1...HEAD"
+
+    changed_files_output: str = subprocess.check_output(
+        ["git", "diff", "--name-only", diff_range],
+        text=True,
+        cwd=repo_root,
+    )
+
+    terraform_dirs: set[Path] = set()
+    for line in changed_files_output.splitlines():
+        rel = line.strip()
+        if not rel:
+            continue
+
+        file_path = (repo_root / rel).resolve()
+        if file_path.suffix in {".tf", ".tfvars"}:
+            terraform_dirs.add(file_path.parent)
+
+    if not terraform_dirs:
+        return False
+
+    return len(set(candidate_dirs) & terraform_dirs) > 0
+
+
 def get_commit_timestamp() -> str:
     """
     Gets the commit timestamp from Git metadata if available.
     """
     sha = os.environ.get("GITHUB_SHA", "unknown")
     workspace = os.environ.get("GITHUB_WORKSPACE", ".")
-    
+
     try:
-        # Mark the workspace directory as safe to avoid "dubious ownership" error
-        # This is needed in GitHub Actions where the repo is owned by a different user
-        subprocess.run(
-            ["git", "config", "--global", "--add", "safe.directory", workspace],
-            check=False,
-            capture_output=True,
-        )
-        
         commit_ts = subprocess.check_output(
             ["git", "show", "--no-patch", "--format=%ct", sha],
             text=True,

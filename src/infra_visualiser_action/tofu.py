@@ -45,12 +45,21 @@ def find_tfvars_files(repo_root: Path) -> list[Path]:
 
     return sorted(tfvars_files)
 
+
 def _run_init() -> Path:
     backend_file = Path("backend_override.tf")
-    backend_file.write_text("""terraform {
+    backend_file.write_text(
+        """terraform {
     backend "local" { path = "terraform.tfstate" }
-}""", encoding="utf-8")
-    init_proc = subprocess.run(["tofu", "init",  "-input=false"], check=False, stdout=sys.stdout, stderr=sys.stderr)
+}""",
+        encoding="utf-8",
+    )
+    init_proc = subprocess.run(
+        ["tofu", "init", "-input=false"],
+        check=False,
+        stdout=sys.stdout,
+        stderr=sys.stderr,
+    )
     if init_proc.returncode != 0:
         click.echo(f"  ❌ Failed to run tofu init: {init_proc.returncode}", err=True)
         sys.exit(1)
@@ -155,7 +164,9 @@ def run_tofu_plans(
         if backend_file and backend_file.exists():
             backend_file.unlink()
 
-        click.echo(f"  📁 Changing working directory to original directory {original_cwd}...")
+        click.echo(
+            f"  📁 Changing working directory to original directory {original_cwd}..."
+        )
         os.chdir(original_cwd)
 
     return attempts, False
