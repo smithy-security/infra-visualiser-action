@@ -10,6 +10,7 @@ import requests
 
 
 def create_archive(
+    repo_root: Path,
     recipe_dir: Path,
     archive_path: Path,
     extra_paths: list[Path] | None = None,
@@ -36,8 +37,8 @@ def create_archive(
     archive_path.parent.mkdir(parents=True, exist_ok=True)
     with tarfile.open(archive_path, "w:gz") as tar:
         for p in files_to_add:
-            # Store paths relative to repo root/recipe dir for stability
-            tar.add(p, arcname=str(p.relative_to(recipe_dir.parent)))
+            # Store paths relative to repo root for stability
+            tar.add(p, arcname=str(p.relative_to(repo_root)))
 
     return archive_path
 

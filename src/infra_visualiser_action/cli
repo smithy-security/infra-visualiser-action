@@ -94,7 +94,7 @@ def main(directory: str, recipe_nickname: str, host: str, gcp_credentials_json: 
     local_modules = find_local_modules_from_modules_json(modules_json, repo_root)
 
     click.echo(f"📦 Creating archive at {archive_path}...")
-    create_archive(recipe_dir, archive_path, extra_paths=local_modules)
+    create_archive(repo_root, recipe_dir, archive_path, extra_paths=local_modules)
 
     # 5. Get OIDC token
     click.echo("🔑 Requesting OIDC token from GitHub...")
