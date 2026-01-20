@@ -180,15 +180,14 @@ def find_local_modules_from_modules_json(
 
     for m in modules:
         # Try multiple keys used in practice
-        source = m.get("Source") or m.get("source")
-        module_dir = m.get("Dir") or m.get("dir")
-
+        source: str | None = m.get("Source") or m.get("source")
+        module_dir: str | None = m.get("Dir") or m.get("dir")
         candidate: Path | None = None
 
         # Prefer explicit directory if present
         if module_dir and module_dir != ".":
             candidate = (repo_root / module_dir).resolve()
-            click.echo(f"  ✅ found terraform module: {module_dir}")
+            click.echo(f"  ✅ found terraform module: {candidate}")
         elif source:
             click.echo(f"  🔎 checking if {module_dir} is a local directory")
             # Heuristic: treat relative or ./ paths as local
@@ -206,8 +205,8 @@ def find_local_modules_from_modules_json(
                     )
                 )
             ):
-                click.echo(f"  ✅ adding {module_dir} to list of local modules")
                 candidate = (repo_root / source).resolve()
+                click.echo(f"  ✅ adding {candidate} to list of local modules")
 
         if candidate and candidate.exists():
             local_paths.append(candidate)

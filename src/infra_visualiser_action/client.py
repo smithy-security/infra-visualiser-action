@@ -4,6 +4,7 @@ import tarfile
 import time
 
 from pathlib import Path
+from typing import Iterable
 
 import click
 import requests
@@ -13,7 +14,7 @@ def create_archive(
     repo_root: Path,
     recipe_dir: Path,
     archive_path: Path,
-    extra_paths: list[Path] | None = None,
+    extra_paths: Iterable[Path] | None = None,
 ) -> Path:
     """
     - Adds *.tf, *.json, *.dot under recipe_dir
@@ -30,6 +31,7 @@ def create_archive(
 
     # Extra paths (e.g. local modules)
     if extra_paths:
+        click.echo(f"Extra paths to archive are the following: {extra_paths}")
         for p in extra_paths:
             if p.exists():
                 files_to_add.append(p)
