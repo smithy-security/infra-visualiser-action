@@ -32,8 +32,15 @@ def create_archive(
     # Extra paths (e.g. local modules)
     if extra_paths:
         for p in extra_paths:
-            if p.exists():
-                files_to_add.append(p)
+            if not p.exists():
+                continue
+
+            if not p.is_dir():
+                files_to_add.append(p.resolve())
+
+            for tf_file in p.rglob("*.tf"):
+                if tf_file.is_file():
+                    files_to_add.append(tf_file.resolve())
 
     archive_path.parent.mkdir(parents=True, exist_ok=True)
     with tarfile.open(archive_path, "w:gz") as tar:
