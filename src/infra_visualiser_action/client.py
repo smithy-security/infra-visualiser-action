@@ -109,7 +109,7 @@ def has_terraform_changes_in_paths(
         raise click.ClickException(msg)
 
     # we also want to check if the workflow itself changed
-    github_workflow_ref = os.environ.get("GITHUB_WORKFLOW_REF")
+    github_workflow_ref: str | None = os.environ.get("GITHUB_WORKFLOW_REF")
     github_workflow_path: str | None = None
     if github_workflow_ref:
         github_workflow_ref = github_workflow_ref.split("@")[0]
@@ -126,6 +126,7 @@ def has_terraform_changes_in_paths(
             continue
 
         file_path = (repo_root / rel).resolve().relative_to(repo_root)
+        click.echo(f"File path: {str(file_path)} == {github_workflow_path} ? {str(file_path) == github_workflow_path}")
         if str(file_path) == github_workflow_path:
             click.echo(f"GitHub workflow file changed: {file_path}")
             return True
