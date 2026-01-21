@@ -97,7 +97,7 @@ def has_terraform_changes_in_paths(
         stderr = getattr(e, "stderr", "") or ""
         stdout = getattr(e, "output", "") or ""
         msg = (
-            "Failed to run 'git diff --name-only' to detect Terraform changes.\n"
+            "Failed to run 'git diff --name-only' to detect Terraform changes. Is fetch depth not at least 2?\n"
             f"Exit code: {e.returncode}\n"
             f"Command: {e.cmd}\n"
             f"Diff range: {diff_range}\n"
