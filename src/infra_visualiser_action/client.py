@@ -82,15 +82,31 @@ def has_terraform_changes_in_paths(
     if base_sha and sha:
         diff_range = f"{base_sha}...{sha}"
     elif sha:
-        diff_range = f"{sha}~1...{sha}"
+        diff_range = f"{sha}"
     else:
         diff_range = "HEAD~1...HEAD"
 
-    changed_files_output: str = subprocess.check_output(
-        ["git", "diff", "--name-only", diff_range],
-        text=True,
-        cwd=repo_root,
-    )
+    try:
+        changed_files_output: str = subprocess.check_output(
+            ["git", "diff", "--name-only", diff_range],
+            text=True,
+            cwd=repo_root,
+        )
+    except subprocess.CalledProcessError as e:
+        # Provide detailed context when git diff fails (e.g. exit code 128)
+        stderr = getattr(e, "stderr", "") or ""
+        stdout = getattr(e, "output", "") or ""
+        msg = (
+            "Failed to run 'git diff --name-only' to detect Terraform changes.\n"
+            f"Exit code: {e.returncode}\n"
+            f"Command: {e.cmd}\n"
+            f"Diff range: {diff_range}\n"
+        )
+        if stdout:
+            msg += f"stdout:\n{stdout}\n"
+        if stderr:
+            msg += f"stderr:\n{stderr}\n"
+        raise click.ClickException(msg)
 
     # we also want to check if the workflow itself changed
     github_workflow_ref = os.environ.get("GITHUB_WORKFLOW_REF")
