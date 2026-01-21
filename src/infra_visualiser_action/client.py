@@ -82,7 +82,7 @@ def has_terraform_changes_in_paths(
     if base_sha and sha:
         diff_range = f"{base_sha}...{sha}"
     elif sha:
-        diff_range = f"{sha}"
+        diff_range = f"{sha}~1...{sha}"
     else:
         diff_range = "HEAD~1...HEAD"
 
@@ -106,6 +106,7 @@ def has_terraform_changes_in_paths(
             msg += f"stdout:\n{stdout}\n"
         if stderr:
             msg += f"stderr:\n{stderr}\n"
+
         raise click.ClickException(msg)
 
     # we also want to check if the workflow itself changed
