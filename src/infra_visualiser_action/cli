@@ -71,12 +71,19 @@ def main(directory: str, recipe_nickname: str, host: str, gcp_credentials_json: 
         click.echo("❌ No successful tofu plan. See logs for details:", err=True)
         for a in attempts:
             click.echo(
-                f" - {a.env_label}: success={a.success}, log={a.log_path}",
+                f"""
+ - {a.env_label}: success={a.success}, log={a.log_path}
+   📄 Log output:
+
+
+{a.log_path.read_text()}
+
+
+
+   📄 end of log output
+ """,
                 err=True,
             )
-            click.echo("  📄 Log output:\n\n\n")
-            click.echo(a.log_path.read_text(), err=True)
-            click.echo("\n\n\n  📄 end of Log output")
 
         sys.exit(1)
 
