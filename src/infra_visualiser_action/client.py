@@ -31,7 +31,6 @@ def create_archive(
 
     # Extra paths (e.g. local modules)
     if extra_paths:
-        click.echo(f"Extra paths to archive are the following: {extra_paths}")
         for p in extra_paths:
             if p.exists():
                 files_to_add.append(p)
@@ -127,7 +126,6 @@ def has_terraform_changes_in_paths(
             continue
 
         file_path = (repo_root / rel).resolve().relative_to(repo_root)
-        click.echo(f"File path: {str(file_path)} == {github_workflow_path} ? {str(file_path) == github_workflow_path}")
         if str(file_path) == github_workflow_path:
             click.echo(f"GitHub workflow file changed: {file_path}")
             return True
