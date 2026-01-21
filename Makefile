@@ -6,4 +6,4 @@ docker:
 	docker build -t infra-visualiser-action .
 
 test:
-	uv run pytest -s tests/
+	uv run pytest tests/

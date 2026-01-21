@@ -1,5 +1,6 @@
 import json
 import os
+import tarfile
 from datetime import datetime, timezone
 from pathlib import Path
 from subprocess import CompletedProcess
@@ -515,3 +516,135 @@ def test_has_no_terraform_changes_but_workflow_changed(tmp_path: Path):
 
     assert result
     mock_check_output.assert_called_once()
+
+
+def test_create_archive_includes_matching_files_from_recipe_dir(tmp_path: Path):
+    """Test that create_archive includes *.tf, *.json, *.dot files from recipe_dir"""
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    
+    recipe_dir = repo_root / "recipe" / "nested"
+    recipe_dir.mkdir(parents=True)
+    
+    # Create matching files
+    (recipe_dir / "main.tf").write_text("terraform content")
+    (recipe_dir / "variables.tf").write_text("variables content")
+    (recipe_dir / "config.json").write_text('{"key": "value"}')
+    (recipe_dir / "graph.dot").write_text("digraph G {}")
+    
+    # Create non-matching file (should be excluded)
+    (recipe_dir / "README.md").write_text("readme content")
+    
+    archive_path = tmp_path / "output" / "archive.tar.gz"
+    
+    result = client.create_archive(
+        repo_root=repo_root,
+        recipe_dir=recipe_dir,
+        archive_path=archive_path,
+    )
+    
+    assert result == archive_path
+    assert archive_path.exists()
+    
+    # Verify archive contents
+    with tarfile.open(archive_path, "r:gz") as tar:
+        members = set([member.name for member in tar.getmembers()])
+    
+    expected_files = set([
+        "recipe/nested/main.tf",
+        "recipe/nested/variables.tf",
+        "recipe/nested/config.json",
+        "recipe/nested/graph.dot",
+    ])
+    assert members.issuperset(expected_files), members.difference(expected_files)
+
+
+def test_create_archive_includes_extra_paths_as_files(tmp_path: Path):
+    """Test that extra_paths files are included in archive"""
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    
+    recipe_dir = repo_root / "recipe"
+    recipe_dir.mkdir()
+    (recipe_dir / "main.tf").write_text("content")
+    
+    extra_file = repo_root / "extra" / "file.json"
+    extra_file.parent.mkdir()
+    extra_file.write_text('{"extra": "data"}')
+    
+    archive_path = tmp_path / "output" / "archive.tar.gz"
+    
+    client.create_archive(
+        repo_root=repo_root,
+        recipe_dir=recipe_dir,
+        archive_path=archive_path,
+        extra_paths=[extra_file],
+    )
+    
+    with tarfile.open(archive_path, "r:gz") as tar:
+        members =   set([member.name for member in tar.getmembers()])
+    
+    assert set(["recipe/main.tf", "extra/file.json"]) == set(members)
+
+
+def test_create_archive_includes_extra_paths_as_directories(tmp_path: Path):
+    """Test that extra_paths directories recursively include *.tf files"""
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    
+    recipe_dir = repo_root / "recipe"
+    recipe_dir.mkdir()
+    (recipe_dir / "main.tf").write_text("content")
+    
+    # Create extra directory with nested .tf files
+    extra_dir = repo_root / "modules" / "local-module"
+    extra_dir.mkdir(parents=True)
+    (extra_dir / "main.tf").write_text("module content")
+    (extra_dir / "variables.tf").write_text("module vars")
+    (extra_dir / "nested").mkdir()
+    (extra_dir / "nested" / "sub.tf").write_text("nested content")
+    
+    # Non-matching file in extra_dir (should not be included)
+    (extra_dir / "README.md").write_text("readme")
+    
+    archive_path = tmp_path / "output" / "archive.tar.gz"
+    
+    client.create_archive(
+        repo_root=repo_root,
+        recipe_dir=recipe_dir,
+        archive_path=archive_path,
+        extra_paths=[extra_dir],
+    )
+    
+    with tarfile.open(archive_path, "r:gz") as tar:
+        members = set([member.name for member in tar.getmembers()])
+    
+    assert set(["recipe/main.tf", "modules/local-module/main.tf", "modules/local-module/variables.tf", "modules/local-module/nested/sub.tf"]) == set(members)
+
+
+def test_create_archive_skips_nonexistent_extra_paths(tmp_path: Path):
+    """Test that non-existent extra_paths are skipped"""
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    
+    recipe_dir = repo_root / "recipe"
+    recipe_dir.mkdir()
+    (recipe_dir / "main.tf").write_text("content")
+    
+    nonexistent = repo_root / "nonexistent" / "file.tf"
+    existing = repo_root / "existing.tf"
+    existing.write_text("existing content")
+    
+    archive_path = tmp_path / "output" / "archive.tar.gz"
+    
+    client.create_archive(
+        repo_root=repo_root,
+        recipe_dir=recipe_dir,
+        archive_path=archive_path,
+        extra_paths=[nonexistent, existing],
+    )
+    
+    with tarfile.open(archive_path, "r:gz") as tar:
+        members = set([member.name for member in tar.getmembers()])
+    
+    assert set(["recipe/main.tf", "existing.tf"]) == members
