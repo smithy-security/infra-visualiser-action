@@ -12,7 +12,7 @@ inputs:
   host:
     description: 'Base URL of the platform host (used as OIDC audience and upload target)'
     required: false
-    default: 'https://infra-app-916613094271.europe-west1.run.app'
+    default: 'https://grafos.ai'
   gcp_credentials_json:
     description: 'GCP service account JSON credentials for authenticating with Google Cloud Provider'
     required: false
