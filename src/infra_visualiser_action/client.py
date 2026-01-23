@@ -50,6 +50,10 @@ def create_archive(
             # Store paths relative to repo root for stability
             tar.add(p, arcname=archive_name)
 
+    archive_size = archive_path.stat().st_size
+    size_mb = archive_size / (1024 * 1024)
+    click.echo(f"Archive created: {archive_path} ({size_mb:.2f} MB / {archive_size:,} bytes)")
+
     return archive_path
 
 
