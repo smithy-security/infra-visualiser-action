@@ -17,6 +17,15 @@ RUN OPENTOFU_VERSION="1.9.0" && \
     chmod +x /usr/local/bin/tofu && \
     rm "tofu_${OPENTOFU_VERSION}_linux_${ARCH}.zip"
 
+# Install Terraform binary
+RUN TERRAFORM_VERSION="1.10.3" && \
+    ARCH="amd64" && \
+    curl -LO "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${ARCH}.zip" && \
+    unzip "terraform_${TERRAFORM_VERSION}_linux_${ARCH}.zip" && \
+    mv terraform /usr/local/bin/terraform && \
+    chmod +x /usr/local/bin/terraform && \
+    rm "terraform_${TERRAFORM_VERSION}_linux_${ARCH}.zip"
+
 # Set working directory
 WORKDIR /action
 

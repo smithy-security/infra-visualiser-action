@@ -46,7 +46,13 @@ def find_tfvars_files(repo_root: Path) -> list[Path]:
     return sorted(tfvars_files)
 
 
-def _run_init() -> Path:
+def _get_binary(use_terraform: bool) -> str:
+    """Return the binary name based on the use_terraform flag."""
+    return "terraform" if use_terraform else "tofu"
+
+
+def _run_init(use_terraform: bool = False) -> Path:
+    binary = _get_binary(use_terraform)
     backend_file = Path("backend_override.tf")
     backend_file.write_text(
         """terraform {
@@ -55,24 +61,25 @@ def _run_init() -> Path:
         encoding="utf-8",
     )
     init_proc = subprocess.run(
-        ["tofu", "init", "-input=false"],
+        [binary, "init", "-input=false"],
         check=False,
         stdout=sys.stdout,
         stderr=sys.stderr,
     )
     if init_proc.returncode != 0:
-        click.echo(f"  ❌ Failed to run tofu init: {init_proc.returncode}", err=True)
+        click.echo(f"  ❌ Failed to run {binary} init: {init_proc.returncode}", err=True)
         sys.exit(1)
 
     return backend_file
 
 
-def _run_plan(env_label: str, extra_args: list[str]) -> PlanAttempt:
+def _run_plan(env_label: str, extra_args: list[str], use_terraform: bool = False) -> PlanAttempt:
+    binary = _get_binary(use_terraform)
     ts = int(time.time())
     safe_label = env_label.replace(os.sep, "_").replace(" ", "_")
-    log_path = Path(tempfile.gettempdir()) / f"tofu_plan_{safe_label}_{ts}.log"
+    log_path = Path(tempfile.gettempdir()) / f"{binary}_plan_{safe_label}_{ts}.log"
 
-    cmd = ["tofu", "plan", "-out=tfplan", "-input=false"] + extra_args
+    cmd = [binary, "plan", "-out=tfplan", "-input=false"] + extra_args
     click.echo(f"  🔍 Running command: {' '.join(cmd)}")
     with log_path.open("w", encoding="utf-8") as log_file:
         log_file.write(f"$ {' '.join(cmd)}\n\n")
@@ -95,12 +102,13 @@ def _run_plan(env_label: str, extra_args: list[str]) -> PlanAttempt:
     )
 
 
-def _generate_plan_and_graph(recipe_dir: Path) -> None:
+def _generate_plan_and_graph(recipe_dir: Path, use_terraform: bool = False) -> None:
+    binary = _get_binary(use_terraform)
     # Convert tfplan (if exists) to JSON
     tfplan_path = recipe_dir / "tfplan"
     if tfplan_path.exists():
         with (recipe_dir / "tfplan.json").open("w", encoding="utf-8") as f:
-            show_cmd = ["tofu", "show", "-json", "tfplan"]
+            show_cmd = [binary, "show", "-json", "tfplan"]
             subprocess.run(show_cmd, check=False, stdout=f, text=True)
     else:
         # Fallback empty plan
@@ -108,27 +116,31 @@ def _generate_plan_and_graph(recipe_dir: Path) -> None:
 
     # Graph & providers schema
     with (recipe_dir / "terraform_graph.dot").open("w", encoding="utf-8") as f:
-        subprocess.run(["tofu", "graph"], check=False, stdout=f, text=True)
+        subprocess.run([binary, "graph"], check=False, stdout=f, text=True)
 
     with (recipe_dir / "provider_schema.json").open("w", encoding="utf-8") as f:
         subprocess.run(
-            ["tofu", "providers", "schema", "-json"],
+            [binary, "providers", "schema", "-json"],
             check=False,
             stdout=f,
             text=True,
         )
 
 
-def run_tofu_plans(
+def run_plans(
     recipe_dir: Path,
     tfvars_files: list[Path],
+    use_terraform: bool = False,
 ) -> tuple[list[PlanAttempt], bool]:
     """
     This function changes the working directory into the recipe directory and
-    runs tofu plans for all .tfvars files. It returns a list of attempts and a
-    boolean indicating if any attempt was successful. All output from the tofu
+    runs terraform/tofu plans for all .tfvars files. It returns a list of attempts
+    and a boolean indicating if any attempt was successful. All output from the
     plans is logged to a temporary file.
+
+    By default, uses OpenTofu. Set use_terraform=True to use Terraform instead.
     """
+    binary = _get_binary(use_terraform)
 
     original_cwd = Path.cwd()
     attempts: list[PlanAttempt] = []
@@ -147,16 +159,16 @@ def run_tofu_plans(
         click.echo(f"  📁 Changing working directory to {recipe_dir}...")
         os.chdir(recipe_dir)
 
-        click.echo(f"  ⚙️ Running tofu init...")
-        backend_file = _run_init()
+        click.echo(f"  ⚙️ Running {binary} init...")
+        backend_file = _run_init(use_terraform=use_terraform)
 
         for env_label, extra_args in planned_attempts:
-            click.echo(f"  ⚙️ Running tofu plan for {env_label}...")
-            attempt = _run_plan(env_label, extra_args)
+            click.echo(f"  ⚙️ Running {binary} plan for {env_label}...")
+            attempt = _run_plan(env_label, extra_args, use_terraform=use_terraform)
             attempts.append(attempt)
             if attempt.success:
-                click.echo(f"  ✅ Successfully ran tofu plan for {env_label}")
-                _generate_plan_and_graph(recipe_dir=recipe_dir)
+                click.echo(f"  ✅ Successfully ran {binary} plan for {env_label}")
+                _generate_plan_and_graph(recipe_dir=recipe_dir, use_terraform=use_terraform)
                 click.echo(f"  📊 Generated plan and graph for {env_label}")
                 return attempts, True
 

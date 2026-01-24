@@ -16,6 +16,10 @@ inputs:
   gcp_credentials_json:
     description: 'GCP service account JSON credentials for authenticating with Google Cloud Provider'
     required: false
+  use_terraform:
+    description: 'Use Terraform instead of OpenTofu for init and plan commands'
+    required: false
+    default: 'false'
 
 runs:
   using: 'docker'

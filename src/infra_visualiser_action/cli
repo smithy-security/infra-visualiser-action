@@ -7,7 +7,7 @@ from pathlib import Path
 
 import click
 
-from infra_visualiser_action.tofu import find_local_modules_from_modules_json, find_tfvars_files, run_tofu_plans
+from infra_visualiser_action.tf import find_local_modules_from_modules_json, find_tfvars_files, run_plans
 from infra_visualiser_action.oidc import get_oidc_token_for_host
 from infra_visualiser_action.client import create_archive, has_terraform_changes_in_paths, mark_dir_safe, upload_archive_to_host
 
@@ -39,7 +39,15 @@ from infra_visualiser_action.client import create_archive, has_terraform_changes
     envvar="INPUT_GCP_CREDENTIALS_JSON",
     help="GCP service account JSON credentials for authenticating with Google Cloud Provider.",
 )
-def main(directory: str, recipe_nickname: str, host: str, gcp_credentials_json: str | None) -> None:
+@click.option(
+    "--use-terraform",
+    "use_terraform",
+    is_flag=True,
+    default=False,
+    envvar="INPUT_USE_TERRAFORM",
+    help="Use Terraform instead of OpenTofu for init and plan commands.",
+)
+def main(directory: str, recipe_nickname: str, host: str, gcp_credentials_json: str | None, use_terraform: bool) -> None:
     """
     Run OpenTofu discovery against a Terraform recipe, create an archive, and upload it.
     Intended to be called from a GitHub Action step.
@@ -64,11 +72,12 @@ def main(directory: str, recipe_nickname: str, host: str, gcp_credentials_json: 
     for f in tfvars_files:
         click.echo(f"  found: {f}")
 
-    click.echo("🚀 Running tofu plans...")
-    attempts, any_success = run_tofu_plans(recipe_dir, tfvars_files)
+    binary = "terraform" if use_terraform else "tofu"
+    click.echo(f"🚀 Running {binary} plans...")
+    attempts, any_success = run_plans(recipe_dir, tfvars_files, use_terraform=use_terraform)
 
     if not any_success:
-        click.echo("❌ No successful tofu plan. See logs for details:", err=True)
+        click.echo(f"❌ No successful {binary} plan. See logs for details:", err=True)
         for a in attempts:
             click.echo(
                 f"""
