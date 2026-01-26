@@ -211,11 +211,7 @@ def find_local_modules_from_modules_json(
         # Prefer explicit directory if present
         if module_dir and module_dir != ".":
             candidate = (recipe_dir / module_dir).resolve()
-            if str(candidate).startswith(str(terraform_modules_path)):
-                click.echo(f"  ⏭️ skipping cached terraform module: {candidate}")
-                continue
-            else:
-                click.echo(f"  ✅ found terraform module: {candidate}")
+            click.echo(f"  ✅ found terraform module: {candidate}")
         elif source:
             click.echo(f"  🔎 checking if {module_dir} is a local directory")
             # Heuristic: treat relative or ./ paths as local
