@@ -107,7 +107,7 @@ def main(directory: str, recipe_nickname: str, host: str, gcp_credentials_json: 
 
     mark_dir_safe(repo_root)
     if not has_terraform_changes_in_paths(
-        [l.relative_to(repo_root) for l in local_modules]+[recipe_dir.resolve()],
+        [l.relative_to(repo_root) for l in local_modules]+[recipe_dir.relative_to(repo_root)],
         repo_root
     ):
         click.echo("No relevant Terraform files changes found. Skipping archive creation.")
