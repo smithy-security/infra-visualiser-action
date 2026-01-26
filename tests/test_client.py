@@ -563,6 +563,37 @@ def test_has_no_terraform_changes_but_workflow_changed(tmp_path: Path):
     mock_check_output.assert_called_once()
 
 
+def test_has_terraform_changes_in_paths_returns_true_when_recipe_dir_has_changes(tmp_path: Path):
+    """Test that function returns True when recipe directory has Terraform file changes"""
+    repo_root = tmp_path.resolve()
+
+    # Recipe directory is in candidate directories
+    recipe_dir = Path("terraform") / "my-recipe"
+    candidate_dirs = [recipe_dir]
+
+    # Mock git diff output with Terraform file in recipe directory
+    git_diff_output = "terraform/my-recipe/main.tf\n"
+
+    with (
+        mock.patch.dict(
+            os.environ,
+            {
+                "GITHUB_SHA": "abc123",
+                "GITHUB_WORKFLOW_REF": "octocat/hello-world/.github/workflows/my-workflow.yml@refs/heads/my_branch",
+            },
+            clear=False
+        ),
+        mock.patch(
+            "infra_visualiser_action.client.subprocess.check_output",
+            return_value=git_diff_output,
+        ) as mock_check_output,
+    ):
+        result = client.has_terraform_changes_in_paths(candidate_dirs, repo_root)
+
+    assert result
+    mock_check_output.assert_called_once()
+
+
 def test_create_archive_includes_matching_files_from_recipe_dir(tmp_path: Path):
     """Test that create_archive includes *.tf, *.json, *.dot files from recipe_dir"""
     repo_root = tmp_path / "repo"

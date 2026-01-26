@@ -200,6 +200,7 @@ def find_local_modules_from_modules_json(
     modules = data.get("Modules") or data.get("modules") or []
 
     local_paths: list[Path] = [modules_json_path]
+    terraform_modules_path = recipe_dir / ".terraform" / "modules"
 
     for m in modules:
         # Try multiple keys used in practice
@@ -210,7 +211,11 @@ def find_local_modules_from_modules_json(
         # Prefer explicit directory if present
         if module_dir and module_dir != ".":
             candidate = (recipe_dir / module_dir).resolve()
-            click.echo(f"  ✅ found terraform module: {candidate}")
+            if str(candidate).startswith(str(terraform_modules_path)):
+                click.echo(f"  ⏭️ skipping cached terraform module: {candidate}")
+                continue
+            else:
+                click.echo(f"  ✅ found terraform module: {candidate}")
         elif source:
             click.echo(f"  🔎 checking if {module_dir} is a local directory")
             # Heuristic: treat relative or ./ paths as local

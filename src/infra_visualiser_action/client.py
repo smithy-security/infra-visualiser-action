@@ -107,7 +107,7 @@ def has_terraform_changes_in_paths(
         stderr = getattr(e, "stderr", "") or ""
         stdout = getattr(e, "output", "") or ""
         msg = (
-            "Failed to run 'git diff --name-only' to detect Terraform changes. Is fetch depth not at least 2?\n"
+            "❌ Failed to run 'git diff --name-only' to detect Terraform changes. Is fetch depth not at least 2?\n"
             f"Exit code: {e.returncode}\n"
             f"Command: {e.cmd}\n"
             f"Diff range: {diff_range}\n"
@@ -147,6 +147,9 @@ def has_terraform_changes_in_paths(
     if not terraform_dirs:
         return False
 
+    click.echo(f"🔍 Terraform directories changed: {terraform_dirs}")
+    click.echo(f"🔍 Candidate directories: {candidate_dirs}")
+    click.echo(f"🔍 Intersection: {set(candidate_dirs) & terraform_dirs}")
     return len(set(candidate_dirs) & terraform_dirs) > 0
 
 
