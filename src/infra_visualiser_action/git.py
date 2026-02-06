@@ -19,9 +19,8 @@ def mark_dir_safe(dir: Path) -> None:
             capture_output=True,
         )
     except Exception as e:
-        raise click.ClickException(
-            f"Could not mark repository as safe: {e}"
-        )
+        raise click.ClickException(f"Could not mark repository as safe: {e}")
+
 
 def has_terraform_changes_in_paths(
     candidate_dirs: Iterable[Path],
@@ -39,7 +38,8 @@ def has_terraform_changes_in_paths(
     sha = os.environ.get("GITHUB_SHA")
     base_sha = os.environ.get("GITHUB_BASE_SHA")
 
-    # Prefer PR base/head SHAs when available, otherwise fall back to last commit
+    # Prefer PR base/head SHAs when available
+    # otherwise fall back to last commit
     if base_sha and sha:
         diff_range = f"{base_sha}...{sha}"
     elif sha:
@@ -58,7 +58,8 @@ def has_terraform_changes_in_paths(
         stderr = getattr(e, "stderr", "") or ""
         stdout = getattr(e, "output", "") or ""
         msg = (
-            "❌ Failed to run 'git diff --name-only' to detect Terraform changes. Is fetch depth not at least 2?\n"
+            "❌ Failed to run 'git diff --name-only' to detect Terraform"
+            + " changes.Is fetch depth not at least 2?\n"
             f"Exit code: {e.returncode}\n"
             f"Command: {e.cmd}\n"
             f"Diff range: {diff_range}\n"
@@ -76,7 +77,8 @@ def has_terraform_changes_in_paths(
     if github_workflow_ref:
         github_workflow_ref = github_workflow_ref.split("@")[0]
         if ".github" in github_workflow_ref:
-            github_workflow_ref = github_workflow_ref[github_workflow_ref.index(".github"):]
+            indx = github_workflow_ref.index(".github")
+            github_workflow_ref = github_workflow_ref[indx:]
 
         if Path(github_workflow_ref).exists():
             github_workflow_path = github_workflow_ref
@@ -109,7 +111,6 @@ def get_commit_timestamp() -> str:
     Gets the commit timestamp from Git metadata if available.
     """
     sha = os.environ.get("GITHUB_SHA", "unknown")
-    workspace = os.environ.get("GITHUB_WORKSPACE", ".")
 
     try:
         commit_ts = subprocess.check_output(

@@ -7,7 +7,6 @@ import time
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import click
 
@@ -28,17 +27,16 @@ def find_tfvars_files(repo_root: Path) -> list[Path]:
 
     # Skip common hidden or irrelevant dirs
     skip_dirs = {
-        ".git",
-        ".github",
-        ".terraform",
-        ".venv",
         "venv",
         "__pycache__",
     }
 
     for root, dirs, files in os.walk(repo_root):
         # Filter out unwanted directories in-place
-        dirs[:] = [d for d in dirs if d not in skip_dirs and not d.startswith(".")]
+        # ., .., .git, .github, .terraform, .venv will be filtered out by
+        # checking for starts with "."
+        condition = lambda d: d not in skip_dirs and not d.startswith(".")
+        dirs[:] = [d for d in dirs if condition(d)]
         for fname in files:
             if fname.endswith(".tfvars"):
                 tfvars_files.append(Path(root) / fname)
@@ -67,13 +65,17 @@ def _run_init(use_terraform: bool = False) -> Path:
         stderr=sys.stderr,
     )
     if init_proc.returncode != 0:
-        click.echo(f"  ❌ Failed to run {binary} init: {init_proc.returncode}", err=True)
+        click.echo(
+            f"  ❌ Failed to run {binary} init: {init_proc.returncode}", err=True
+        )
         sys.exit(1)
 
     return backend_file
 
 
-def _run_plan(env_label: str, extra_args: list[str], use_terraform: bool = False) -> PlanAttempt:
+def _run_plan(
+    env_label: str, extra_args: list[str], use_terraform: bool = False
+) -> PlanAttempt:
     binary = _get_binary(use_terraform)
     ts = int(time.time())
     safe_label = env_label.replace(os.sep, "_").replace(" ", "_")
@@ -167,8 +169,10 @@ def run_plans(
             attempt = _run_plan(env_label, extra_args, use_terraform=use_terraform)
             attempts.append(attempt)
             if attempt.success:
-                click.echo(f"  ✅ Successfully ran {binary} plan for {env_label}")
-                _generate_plan_and_graph(recipe_dir=recipe_dir, use_terraform=use_terraform)
+                click.echo("  ✅ Successfully ran " + f"{binary} plan for {env_label}")
+                _generate_plan_and_graph(
+                    recipe_dir=recipe_dir, use_terraform=use_terraform
+                )
                 click.echo(f"  📊 Generated plan and graph for {env_label}")
                 return attempts, True
 
@@ -177,7 +181,8 @@ def run_plans(
             backend_file.unlink()
 
         click.echo(
-            f"  📁 Changing working directory to original directory {original_cwd}..."
+            "  📁 Changing working directory to original directory"
+            + f" {original_cwd}..."
         )
         os.chdir(original_cwd)
 
@@ -189,9 +194,10 @@ def find_local_modules_from_modules_json(
     recipe_dir: Path,
 ) -> set[Path]:
     """
-    Reads modules.json and returns paths to local modules that exist in the repo.
-    The Terraform/OpenTofu modules.json format has a "Modules" list; we treat
-    any entry whose "Source" or "Dir" refers to a local path as a local module.
+    Reads modules.json and returns paths to local modules that exist in the
+    repo. The Terraform/OpenTofu modules.json format has a "Modules" list; we
+    treat any entry whose "Source" or "Dir" refers to a local path as a local
+    module.
     """
     if not modules_json_path.is_file():
         return []
@@ -200,7 +206,6 @@ def find_local_modules_from_modules_json(
     modules = data.get("Modules") or data.get("modules") or []
 
     local_paths: list[Path] = [modules_json_path]
-    terraform_modules_path = recipe_dir / ".terraform" / "modules"
 
     for m in modules:
         # Try multiple keys used in practice
