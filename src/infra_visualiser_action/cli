@@ -7,9 +7,11 @@ from pathlib import Path
 
 import click
 
-from infra_visualiser_action.tf import find_local_modules_from_modules_json, find_tfvars_files, run_plans
+from infra_visualiser_action.client import create_archive, upload_archive_to_host
+from infra_visualiser_action.git import has_terraform_changes_in_paths, mark_dir_safe
 from infra_visualiser_action.oidc import get_oidc_token_for_host
-from infra_visualiser_action.client import create_archive, has_terraform_changes_in_paths, mark_dir_safe, upload_archive_to_host
+from infra_visualiser_action.tf import find_local_modules_from_modules_json, find_tfvars_files, run_plans
+
 
 # Top-level CLI with click
 @click.command()
