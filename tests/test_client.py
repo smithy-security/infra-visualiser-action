@@ -73,8 +73,8 @@ def test_create_archive_includes_extra_paths_as_files(tmp_path: Path):
     assert set(["recipe/main.tf", "extra/file.json"]) == set(members)
 
 
-def test_create_archive_includes_extra_paths_as_directories(tmp_path: Path):
-    """Test that extra_paths directories recursively include *.tf files"""
+def test_create_archive_only_includes_files_in_extra_paths_directories(tmp_path: Path):
+    """Test that extra_paths directories include *.tf files but exclude subdirectories"""
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
     
@@ -105,7 +105,14 @@ def test_create_archive_includes_extra_paths_as_directories(tmp_path: Path):
     with tarfile.open(archive_path, "r:gz") as tar:
         members = set([member.name for member in tar.getmembers()])
     
-    assert set(["recipe/main.tf", "modules/local-module/main.tf", "modules/local-module/variables.tf", "modules/local-module/nested/sub.tf"]) == set(members)
+    expected_files = {
+        "recipe/main.tf",
+        "modules/local-module/main.tf",
+        "modules/local-module/variables.tf",
+    }
+    
+    assert members == expected_files
+    assert "modules/local-module/nested/sub.tf" not in members
 
 
 def test_create_archive_skips_nonexistent_extra_paths(tmp_path: Path):

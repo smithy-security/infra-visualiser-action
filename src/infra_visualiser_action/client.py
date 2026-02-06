@@ -37,7 +37,7 @@ def create_archive(
             if not p.is_dir():
                 files_to_add.append(p.resolve())
 
-            for tf_file in p.rglob("*.tf"):
+            for tf_file in p.glob("*.tf"):
                 if tf_file.is_file():
                     files_to_add.append(tf_file.resolve())
 
