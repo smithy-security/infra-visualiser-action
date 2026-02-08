@@ -204,7 +204,7 @@ class GitHubArtifactClient:
             "workflow_job_run_backend_id": self.backend_ids["workflowJobRunBackendId"],
             "name": name,
             "size": str(file_size),
-            "hash": {"value": f"sha256:{sha256_hash}"},
+            "hash": f"sha256:{sha256_hash}",
         }
 
         finalize_resp = self._twirp_request("FinalizeArtifact", finalize_req)
