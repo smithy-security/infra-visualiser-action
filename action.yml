@@ -20,6 +20,13 @@ inputs:
     description: 'Use Terraform instead of OpenTofu for init and plan commands'
     required: false
     default: 'false'
+  upload_to_github:
+    description: 'Upload the generated archive as a GitHub Artifact and notify the server'
+    required: false
+    default: 'false'
+  github_token:
+    description: 'GitHub Token (required if upload_to_github is true)'
+    required: false
 
 runs:
   using: 'docker'
@@ -28,6 +35,9 @@ runs:
 permissions:
   id-token: write
   contents: read
+  # Needed to list artifacts in the GitHub Actions API
+  # used when the uploade to github is enabled
+  actions: read
 
 branding:
   icon: 'box'

@@ -95,3 +95,37 @@ def upload_archive_to_host(
             raise click.ClickException(
                 f"Upload failed with status {resp.status_code}: {resp.text}"
             )
+
+
+def notify_server(
+    host: str,
+    oidc_token: str,
+    recipe_path: str,
+    recipe_nickname: str,
+    artifact_url: str,
+) -> None:
+    """
+    Notifies the server about the available artifact URL.
+    """
+    url = host.rstrip("/")
+    commit_ts = get_commit_timestamp()
+
+    data = {
+        "commit_timestamp": commit_ts,
+        "recipe_path": recipe_path,
+        "recipe_nickname": recipe_nickname,
+        "archive_url": artifact_url,
+    }
+    headers = {"Authorization": f"Bearer {oidc_token}"}
+
+    resp = requests.post(
+        f"{url}/api/v1/notify-terraform-recipe",
+        headers=headers,
+        json=data,
+        timeout=30,
+    )
+
+    if not resp.ok:
+        raise click.ClickException(
+            f"Notification failed with status {resp.status_code}: {resp.text}"
+        )

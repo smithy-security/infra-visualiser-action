@@ -7,7 +7,8 @@ from pathlib import Path
 
 import click
 
-from infra_visualiser_action.client import create_archive, upload_archive_to_host
+from infra_visualiser_action.artifact import GitHubArtifactClient
+from infra_visualiser_action.client import create_archive, upload_archive_to_host, notify_server
 from infra_visualiser_action.git import has_terraform_changes_in_paths, mark_dir_safe
 from infra_visualiser_action.oidc import get_oidc_token_for_host
 from infra_visualiser_action.tf import find_local_modules_from_modules_json, find_tfvars_files, run_plans
@@ -49,7 +50,30 @@ from infra_visualiser_action.tf import find_local_modules_from_modules_json, fin
     envvar="INPUT_USE_TERRAFORM",
     help="Use Terraform instead of OpenTofu for init and plan commands.",
 )
-def main(directory: str, recipe_nickname: str, host: str, gcp_credentials_json: str | None, use_terraform: bool) -> None:
+@click.option(
+    "--upload-to-github",
+    "upload_to_github",
+    is_flag=True,
+    default=False,
+    envvar="INPUT_UPLOAD_TO_GITHUB",
+    help="Upload the generated archive as a GitHub Artifact and notify the server.",
+)
+@click.option(
+    "--github-token",
+    "github_token",
+    required=False,
+    envvar="INPUT_GITHUB_TOKEN",
+    help="GitHub Token (required if upload_to_github is true).",
+)
+def main(
+    directory: str,
+    recipe_nickname: str,
+    host: str,
+    gcp_credentials_json: str | None,
+    use_terraform: bool,
+    upload_to_github: bool,
+    github_token: str | None,
+) -> None:
     """
     Run OpenTofu discovery against a Terraform recipe, create an archive, and upload it.
     Intended to be called from a GitHub Action step.
@@ -121,14 +145,44 @@ def main(directory: str, recipe_nickname: str, host: str, gcp_credentials_json: 
     click.echo("🔑 Requesting OIDC token from GitHub...")
     oidc_token = get_oidc_token_for_host(host)
 
-    click.echo(f"🏗️ Uploading archive to {host}...")
-    upload_archive_to_host(
-        host=host,
-        archive_path=archive_path,
-        oidc_token=oidc_token,
-        recipe_path=directory,
-        recipe_nickname=recipe_nickname,
-    )
+    if upload_to_github:
+        click.echo("🏗️ Uploading archive as GitHub Artifact...")
+        client = GitHubArtifactClient(github_token=github_token)
+
+        # Determine a clean artifact name
+        # We drop the .tar.gz extension for the artifact name itself usually
+        artifact_name = archive_name.replace(".tar.gz", "")
+
+        try:
+            download_url = client.upload_artifact(
+                name=artifact_name,
+                file_path=archive_path
+            )
+        except click.ClickException as e:
+            click.echo(f"❌ Artifact upload failed: {e}", err=True)
+            sys.exit(1)
+
+        click.echo(f"  ✅ Artifact URL: {download_url}")
+
+        click.echo(f"🔔 Notifying server at {host}...")
+        notify_server(
+            host=host,
+            oidc_token=oidc_token,
+            recipe_path=directory,
+            recipe_nickname=recipe_nickname,
+            artifact_url=download_url,
+        )
+
+    else:
+        # Legacy behavior: Upload directly to host (if host supports file upload)
+        click.echo(f"🏗️ Uploading archive to {host} (direct upload)...")
+        upload_archive_to_host(
+            host=host,
+            archive_path=archive_path,
+            oidc_token=oidc_token,
+            recipe_path=directory,
+            recipe_nickname=recipe_nickname,
+        )
 
     click.echo("Done.")
 
