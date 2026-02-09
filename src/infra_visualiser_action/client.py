@@ -108,7 +108,6 @@ def notify_server(
     """
     Notifies the server about the available artifact URL.
     """
-    url = host.rstrip("/")
     commit_ts = get_commit_timestamp()
 
     data = {
@@ -118,7 +117,7 @@ def notify_server(
         "archive_url": artifact_url,
     }
     headers = {"Authorization": f"Bearer {oidc_token}"}
-    parsed_url = urlparse(url)
+    parsed_url = urlparse(host)
     if parsed_url.hostname == "smee.io":
         click.echo(f"Host is smee.io so won't be using own context path but will use as is ({parsed_url.geturl()})")
     else:
