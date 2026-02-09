@@ -120,20 +120,16 @@ def notify_server(
     headers = {"Authorization": f"Bearer {oidc_token}"}
     parsed_url = urlparse(url)
     if parsed_url.hostname == "smee.io":
-        click.echo(f"Notifying smee.io with data")
-        resp = requests.post(
-            f"{url}",
-            headers=headers,
-            json=data,
-            timeout=30,
-        )
+        click.echo(f"Host is smee.io so won't be using own context path but will use as is ({parsed_url})")
     else:
-        resp = requests.post(
-            f"{url}/api/v1/notify-terraform-recipe",
-            headers=headers,
-            json=data,
-            timeout=30,
-        )
+        parsed_url.path = "/api/v1/notify-terraform-recipe"
+
+    resp = requests.post(
+        f"{parsed_url}",
+        headers=headers,
+        json=data,
+        timeout=30,
+    )
 
     if not resp.ok:
         raise click.ClickException(
