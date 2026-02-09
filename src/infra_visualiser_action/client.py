@@ -2,6 +2,7 @@ import tarfile
 
 from pathlib import Path
 from typing import Iterable
+from urllib.parse import urlparse
 
 import click
 import requests
@@ -117,13 +118,22 @@ def notify_server(
         "archive_url": artifact_url,
     }
     headers = {"Authorization": f"Bearer {oidc_token}"}
-
-    resp = requests.post(
-        f"{url}/api/v1/notify-terraform-recipe",
-        headers=headers,
-        json=data,
-        timeout=30,
-    )
+    parsed_url = urlparse(url)
+    if parsed_url.hostname == "smee.io":
+        click.echo(f"Notifying smee.io with data")
+        resp = requests.post(
+            f"{url}",
+            headers=headers,
+            json=data,
+            timeout=30,
+        )
+    else:
+        resp = requests.post(
+            f"{url}/api/v1/notify-terraform-recipe",
+            headers=headers,
+            json=data,
+            timeout=30,
+        )
 
     if not resp.ok:
         raise click.ClickException(
