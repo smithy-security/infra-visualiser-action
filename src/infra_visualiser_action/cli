@@ -65,6 +65,14 @@ from infra_visualiser_action.tf import find_local_modules_from_modules_json, fin
     envvar="INPUT_GITHUB_TOKEN",
     help="GitHub Token (required if upload_to_github is true).",
 )
+@click.option(
+    "--include-markdown",
+    "include_markdown",
+    is_flag=True,
+    default=False,
+    envvar="INPUT_INCLUDE_MARKDOWN",
+    help="Also add markdown (*.md) files from the recipe directory to the archive.",
+)
 def main(
     directory: str,
     recipe_nickname: str,
@@ -73,6 +81,7 @@ def main(
     use_terraform: bool,
     upload_to_github: bool,
     github_token: str | None,
+    include_markdown: bool,
 ) -> None:
     """
     Run OpenTofu discovery against a Terraform recipe, create an archive, and upload it.
@@ -140,7 +149,13 @@ def main(
         sys.exit(0)
 
     click.echo(f"📦 Creating archive at {archive_path}...")
-    create_archive(repo_root, recipe_dir, archive_path, extra_paths=local_modules)
+    create_archive(
+        repo_root,
+        recipe_dir,
+        archive_path,
+        extra_paths=local_modules,
+        include_markdown=include_markdown,
+    )
 
     click.echo("🔑 Requesting OIDC token from GitHub...")
     oidc_token = get_oidc_token_for_host(host)

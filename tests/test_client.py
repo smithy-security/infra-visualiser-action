@@ -18,7 +18,7 @@ def test_create_archive_includes_matching_files_from_recipe_dir(tmp_path: Path):
     (recipe_dir / "config.json").write_text('{"key": "value"}')
     (recipe_dir / "graph.dot").write_text("digraph G {}")
     
-    # Create non-matching file (should be excluded)
+    # Create non-matching file (should be excluded when include_markdown=False)
     (recipe_dir / "README.md").write_text("readme content")
     
     archive_path = tmp_path / "output" / "archive.tar.gz"
@@ -43,6 +43,36 @@ def test_create_archive_includes_matching_files_from_recipe_dir(tmp_path: Path):
         "recipe/nested/graph.dot",
     ])
     assert members.issuperset(expected_files), members.difference(expected_files)
+    assert "recipe/nested/README.md" not in members
+
+
+def test_create_archive_includes_markdown_when_enabled(tmp_path: Path):
+    """Test that create_archive includes *.md files from recipe_dir when include_markdown=True"""
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    
+    recipe_dir = repo_root / "recipe" / "nested"
+    recipe_dir.mkdir(parents=True)
+    
+    (recipe_dir / "main.tf").write_text("terraform content")
+    (recipe_dir / "README.md").write_text("readme content")
+    (recipe_dir / "docs.md").write_text("docs content")
+    
+    archive_path = tmp_path / "output" / "archive.tar.gz"
+    
+    client.create_archive(
+        repo_root=repo_root,
+        recipe_dir=recipe_dir,
+        archive_path=archive_path,
+        include_markdown=True,
+    )
+    
+    assert archive_path.exists()
+    with tarfile.open(archive_path, "r:gz") as tar:
+        members = set([member.name for member in tar.getmembers()])
+    
+    expected = {"recipe/nested/main.tf", "recipe/nested/README.md", "recipe/nested/docs.md"}
+    assert members == expected
 
 
 def test_create_archive_includes_extra_paths_as_files(tmp_path: Path):

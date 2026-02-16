@@ -27,6 +27,10 @@ inputs:
   github_token:
     description: 'GitHub Token (required if upload_to_github is true)'
     required: false
+  include_markdown:
+    description: 'Also add markdown (*.md) files from the recipe directory to the archive'
+    required: false
+    default: 'false'
 
 runs:
   using: 'docker'

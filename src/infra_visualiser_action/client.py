@@ -15,16 +15,21 @@ def create_archive(
     recipe_dir: Path,
     archive_path: Path,
     extra_paths: Iterable[Path] | None = None,
+    include_markdown: bool = False,
 ) -> Path:
     """
     - Adds *.tf, *.json, *.dot under recipe_dir
+    - Optionally adds *.md under recipe_dir when include_markdown is True
     - Adds .terraform/modules/modules.json if present
     - Adds extra_paths if provided
     """
     files_to_add: list[Path] = []
 
     # All relevant files in recipe_dir
-    for pattern in ("*.tf", "*.json", "*.dot"):
+    patterns: list[str] = ["*.tf", "*.json", "*.dot"]
+    if include_markdown:
+        patterns.append("*.md")
+    for pattern in patterns:
         for p in recipe_dir.glob(pattern):
             if p.is_file():
                 files_to_add.append(p.resolve())
