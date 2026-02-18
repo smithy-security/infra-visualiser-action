@@ -8,6 +8,7 @@ A GitHub Action that analyzes Terraform/OpenTofu recipes, generates graphs and s
 - Runs OpenTofu plans with multiple variable files until one succeeds
 - Generates Terraform graphs and provider schemas
 - Finds and includes local Terraform modules
+- Optionally includes markdown (`.md`) files from the root of the repository in the archive
 - Uploads artifacts to your platform using OIDC authentication
 
 ## Usage
@@ -83,9 +84,10 @@ jobs:
 |-------|-------------|----------|---------|
 | `directory` | Path (relative to repo root) to the Terraform/OpenTofu recipe | Yes | - |
 | `recipe-nickname` | Human-friendly nickname for this recipe | Yes | - |
-| `host` | Base URL of the platform host (used as OIDC audience and upload target) | No | `https://infra-app-916613094271.europe-west1.run.app` |
+| `host` | Base URL of the platform host (used as OIDC audience and upload target) | No | `https://grafos.ai` |
 | `upload_to_github` | Upload the generated archive as a GitHub Artifact | No | `false` |
 | `github_token` | GitHub Token (required if upload_to_github is true) | No | - |
+| `include_markdown` | Also add markdown (`*.md`) files from the root of the repository to the archive | No | `false` |
 
 ### Permissions
 
@@ -106,7 +108,7 @@ This action requires the following permissions:
    - Provider schema (JSON)
    - Plan output (JSON)
 4. **Module Detection**: Finds local Terraform modules from `modules.json`
-5. **Archive**: Packages all artifacts into a tarball
+5. **Archive**: Packages all artifacts into a tarball (`.tf`, `.json`, `.dot`, and optionally `.md` from the repository root)
 6. **Upload**: Uploads to your platform using OIDC authentication
 
 ### Requirements

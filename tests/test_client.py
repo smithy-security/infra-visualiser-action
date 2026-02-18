@@ -47,7 +47,7 @@ def test_create_archive_includes_matching_files_from_recipe_dir(tmp_path: Path):
 
 
 def test_create_archive_includes_markdown_when_enabled(tmp_path: Path):
-    """Test that create_archive includes *.md files from recipe_dir when include_markdown=True"""
+    """When include_markdown=True, *.md files at the repository root are included in the archive."""
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
     
@@ -55,8 +55,8 @@ def test_create_archive_includes_markdown_when_enabled(tmp_path: Path):
     recipe_dir.mkdir(parents=True)
     
     (recipe_dir / "main.tf").write_text("terraform content")
-    (recipe_dir / "README.md").write_text("readme content")
-    (recipe_dir / "docs.md").write_text("docs content")
+    (repo_root / "README.md").write_text("readme content")
+    (repo_root / "docs.md").write_text("docs content")
     
     archive_path = tmp_path / "output" / "archive.tar.gz"
     
@@ -71,8 +71,45 @@ def test_create_archive_includes_markdown_when_enabled(tmp_path: Path):
     with tarfile.open(archive_path, "r:gz") as tar:
         members = set([member.name for member in tar.getmembers()])
     
-    expected = {"recipe/nested/main.tf", "recipe/nested/README.md", "recipe/nested/docs.md"}
+    expected = {"recipe/nested/main.tf", "README.md", "docs.md"}
     assert members == expected
+
+
+def test_create_archive_include_markdown_adds_markdown_from_repo_root_and_subdirs(tmp_path: Path):
+    """With include_markdown=True, only *.md at the repository root are added; .md in subdirs are not."""
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    
+    recipe_dir = repo_root / "recipe"
+    recipe_dir.mkdir()
+    (recipe_dir / "main.tf").write_text("content")
+    (recipe_dir / "README.md").write_text("readme in recipe")
+    
+    (repo_root / "ROOT.md").write_text("root readme")
+    
+    extra_dir = repo_root / "modules" / "local"
+    extra_dir.mkdir(parents=True)
+    (extra_dir / "main.tf").write_text("module content")
+    (extra_dir / "NOTES.md").write_text("notes")
+    
+    archive_path = tmp_path / "output" / "archive.tar.gz"
+    
+    client.create_archive(
+        repo_root=repo_root,
+        recipe_dir=recipe_dir,
+        archive_path=archive_path,
+        extra_paths=[extra_dir],
+        include_markdown=True,
+    )
+    
+    with tarfile.open(archive_path, "r:gz") as tar:
+        members = set([member.name for member in tar.getmembers()])
+    
+    assert "recipe/main.tf" in members
+    assert "modules/local/main.tf" in members
+    assert "ROOT.md" in members
+    assert "recipe/README.md" in members
+    assert "modules/local/NOTES.md" in members
 
 
 def test_create_archive_includes_extra_paths_as_files(tmp_path: Path):

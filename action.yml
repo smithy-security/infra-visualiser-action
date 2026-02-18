@@ -28,7 +28,7 @@ inputs:
     description: 'GitHub Token (required if upload_to_github is true)'
     required: false
   include_markdown:
-    description: 'Also add markdown (*.md) files from the recipe directory to the archive'
+    description: 'Also add markdown (*.md) files from the root of the repository to the archive'
     required: false
     default: 'false'
 

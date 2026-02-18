@@ -19,7 +19,7 @@ def create_archive(
 ) -> Path:
     """
     - Adds *.tf, *.json, *.dot under recipe_dir
-    - Optionally adds *.md under recipe_dir when include_markdown is True
+    - Optionally adds *.md from the repository root when include_markdown is True
     - Adds .terraform/modules/modules.json if present
     - Adds extra_paths if provided
     """
@@ -29,7 +29,7 @@ def create_archive(
     patterns: list[str] = ["*.tf", "*.json", "*.dot"]
 
     if include_markdown:
-        for p in Path(repo_root).glob("*.md"):
+        for p in Path(repo_root).rglob("*.md"):
             if p.is_file():
                 files_to_add.append(p.resolve())
 
