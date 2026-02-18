@@ -27,8 +27,12 @@ def create_archive(
 
     # All relevant files in recipe_dir
     patterns: list[str] = ["*.tf", "*.json", "*.dot"]
+
     if include_markdown:
-        patterns.append("*.md")
+        for p in Path(repo_root).glob("*.md"):
+            if p.is_file():
+                files_to_add.append(p.resolve())
+
     for pattern in patterns:
         for p in recipe_dir.glob(pattern):
             if p.is_file():
