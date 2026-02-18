@@ -112,6 +112,36 @@ def test_create_archive_include_markdown_adds_markdown_from_repo_root_and_subdir
     assert "modules/local/NOTES.md" in members
 
 
+def test_create_archive_include_markdown_skips_vendor_dirs(tmp_path: Path):
+    """With include_markdown=True, *.md under vendor/node_modules/etc. are excluded."""
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    recipe_dir = repo_root / "recipe"
+    recipe_dir.mkdir()
+    (recipe_dir / "main.tf").write_text("content")
+    (recipe_dir / "README.md").write_text("recipe readme")
+
+    (repo_root / "vendor" / "pkg" / "README.md").parent.mkdir(parents=True)
+    (repo_root / "vendor" / "pkg" / "README.md").write_text("go vendor readme")
+    (repo_root / "node_modules" / "some-pkg" / "CHANGELOG.md").parent.mkdir(parents=True)
+    (repo_root / "node_modules" / "some-pkg" / "CHANGELOG.md").write_text("npm readme")
+
+    archive_path = tmp_path / "output" / "archive.tar.gz"
+    client.create_archive(
+        repo_root=repo_root,
+        recipe_dir=recipe_dir,
+        archive_path=archive_path,
+        include_markdown=True,
+    )
+    with tarfile.open(archive_path, "r:gz") as tar:
+        members = set([member.name for member in tar.getmembers()])
+
+    assert "recipe/main.tf" in members
+    assert "recipe/README.md" in members
+    assert "vendor/pkg/README.md" not in members
+    assert "node_modules/some-pkg/CHANGELOG.md" not in members
+
+
 def test_create_archive_includes_extra_paths_as_files(tmp_path: Path):
     """Test that extra_paths files are included in archive"""
     repo_root = tmp_path / "repo"

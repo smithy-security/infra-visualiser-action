@@ -9,6 +9,28 @@ import requests
 
 from infra_visualiser_action.git import get_commit_timestamp
 
+# Directory names that are language/vendor dependency trees; we skip them when finding markdown.
+VENDOR_DIR_NAMES = frozenset({
+    "vendor",            # Go
+    "node_modules",      # Node.js
+    ".node_modules",
+    "venv",
+    ".venv",
+    "env",
+    ".env",              # Python virtualenvs (avoid .env files dirs if named thus)
+    "target",            # Rust/Cargo
+    "bower_components",
+    ".git",
+    "__pycache__",
+    ".terraform",        # Terraform/OpenTofu
+    ".tofu",
+})
+
+
+def _is_under_vendor_dir(path: Path) -> bool:
+    """True if any path component is a known vendor/dependency directory name."""
+    return any(part in VENDOR_DIR_NAMES for part in path.parts)
+
 
 def create_archive(
     repo_root: Path,
@@ -30,8 +52,11 @@ def create_archive(
 
     if include_markdown:
         for p in Path(repo_root).rglob("*.md"):
-            if p.is_file():
-                files_to_add.append(p.resolve())
+            if not p.is_file():
+                continue
+            if _is_under_vendor_dir(p):
+                continue
+            files_to_add.append(p.resolve())
 
     for pattern in patterns:
         for p in recipe_dir.glob(pattern):
